@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Survival</title>
+    <title>Top-Down Zombie Survival</title>
     <style>
       html, body {
         margin: 0;
@@ -11,6 +11,10 @@
         height: 100%;
         overflow: hidden;
         background: #000;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+        color: #f5f5f5;
+        -webkit-user-select: none;
+        user-select: none;
       }
       #app {
         position: fixed;
@@ -20,6 +24,120 @@
         display: block;
         width: 100%;
         height: 100%;
+        cursor: crosshair;
+      }
+
+      /* --- HUD overlay --- */
+      #hud {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 10;
+        transition: opacity 0.25s ease;
+      }
+      #hud.dim {
+        opacity: 0.35;
+      }
+
+      .hud-corner {
+        position: absolute;
+        padding: 16px;
+      }
+      .hud-tl { top: 0; left: 0; }
+      .hud-tr { top: 0; right: 0; text-align: right; }
+
+      /* Health bar */
+      #health-frame {
+        width: 220px;
+        height: 18px;
+        background: rgba(0, 0, 0, 0.55);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 3px;
+        overflow: hidden;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+      }
+      #health-fill {
+        height: 100%;
+        width: 100%;
+        background: #4ad94a;
+        transition: width 0.15s ease, background-color 0.15s ease;
+      }
+      #health-label {
+        margin-top: 6px;
+        font-size: 12px;
+        opacity: 0.8;
+        letter-spacing: 0.05em;
+      }
+      #kill-count {
+        margin-top: 12px;
+        font-size: 16px;
+        font-weight: 600;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+      }
+
+      /* Timer */
+      #timer {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 22px;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.7);
+        letter-spacing: 0.05em;
+      }
+
+      /* Game over panel */
+      #game-over {
+        position: fixed;
+        inset: 0;
+        display: none;
+        align-items: center;
+        justify-content: center;
+        background: rgba(0, 0, 0, 0.55);
+        z-index: 20;
+        pointer-events: auto;
+      }
+      #game-over.visible {
+        display: flex;
+      }
+      #game-over-panel {
+        background: rgba(20, 20, 24, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        border-radius: 8px;
+        padding: 28px 36px;
+        min-width: 280px;
+        text-align: center;
+        box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6);
+      }
+      #game-over-title {
+        font-size: 28px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        color: #e85a5a;
+        margin: 0 0 16px;
+      }
+      #game-over-stats {
+        margin: 0 0 20px;
+        font-size: 15px;
+        line-height: 1.6;
+        opacity: 0.9;
+      }
+      #game-over-stats span {
+        font-weight: 700;
+        color: #fff;
+      }
+      #restart-btn {
+        background: #4ad94a;
+        color: #102010;
+        border: none;
+        border-radius: 4px;
+        padding: 10px 22px;
+        font-size: 15px;
+        font-weight: 700;
+        letter-spacing: 0.05em;
+        cursor: pointer;
+        transition: background 0.15s ease;
+      }
+      #restart-btn:hover {
+        background: #6cf06c;
       }
     </style>
   </head>
@@ -27,6 +145,31 @@
     <div id="app">
       <canvas id="scene"></canvas>
     </div>
+
+    <div id="hud">
+      <div class="hud-corner hud-tl">
+        <div id="health-frame">
+          <div id="health-fill"></div>
+        </div>
+        <div id="health-label">HP 100 / 100</div>
+        <div id="kill-count">Kills: 0</div>
+      </div>
+      <div class="hud-corner hud-tr">
+        <div id="timer">00:00</div>
+      </div>
+    </div>
+
+    <div id="game-over">
+      <div id="game-over-panel">
+        <h1 id="game-over-title">You died</h1>
+        <p id="game-over-stats">
+          Final kills: <span id="final-kills">0</span><br />
+          Survived: <span id="final-time">00:00</span>
+        </p>
+        <button id="restart-btn" type="button">Restart</button>
+      </div>
+    </div>
+
     <script type="module" src="/src/main.js"></script>
   </body>
 </html>
