@@ -11,6 +11,7 @@ import {
   disposeZombie,
 } from './zombie.js';
 import { buildWorld, ARENA_HALF } from './world.js';
+import { mulberry32, overlapsAnyObstacle } from './collision.js';
 
 // --- Spawn ramp defaults (DESIGN §9) ---
 const SPAWN_START_INTERVAL = 3.0;
@@ -203,28 +204,5 @@ export function createGame({ scene, input }) {
     world,
     update,
     reset,
-  };
-}
-
-function overlapsAnyObstacle(x, z, margin, obstacles) {
-  for (const o of obstacles) {
-    if (
-      x + margin > o.min.x && x - margin < o.max.x &&
-      z + margin > o.min.z && z - margin < o.max.z
-    ) {
-      return true;
-    }
-  }
-  return false;
-}
-
-function mulberry32(seed) {
-  let s = seed >>> 0;
-  return function () {
-    s = (s + 0x6D2B79F5) >>> 0;
-    let t = s;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
   };
 }

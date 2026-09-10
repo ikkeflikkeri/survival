@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { resolveSphereAgainstAABBs, separateSpheresXZ } from './collision.js';
 
 // Zombie entity. Per DESIGN.md §4 and §9 defaults:
 //   - Upright capsule, muted green.
@@ -88,18 +89,7 @@ export function updateZombie(zombie, dt, player, world, otherZombies) {
   // --- collision: zombie vs other zombies (sphere-vs-sphere) ---
   for (const other of otherZombies) {
     if (other === zombie || other.dead) continue;
-    const ox = zombie.position.x - other.position.x;
-    const oz = zombie.position.z - other.position.z;
-    const r = zombie.radius + other.radius;
-    const d2 = ox * ox + oz * oz;
-    if (d2 > 0 && d2 < r * r) {
-      const d = Math.sqrt(d2);
-      const push = (r - d) * 0.5;
-      zombie.position.x += (ox / d) * push;
-      zombie.position.z += (oz / d) * push;
-      other.position.x -= (ox / d) * push;
-      other.position.z -= (oz / d) * push;
-    }
+    separateSpheresXZ(zombie, other);
   }
 
   // Face the player (purely cosmetic). yaw 0 = facing -Z, so the
@@ -130,47 +120,4 @@ export function disposeZombie(zombie, scene) {
   scene.remove(zombie.mesh);
   zombie.mesh.geometry.dispose();
   zombie.mesh.material.dispose();
-}
-
-// --- shared resolver, kept here so zombie collision stays colocated ---
-function resolveSphereAgainstAABBs(nextPos, radius, walls, obstacles) {
-  const limit = 25 - radius - 0.5;
-  nextPos.x = clamp(nextPos.x, -limit, limit);
-  nextPos.z = clamp(nextPos.z, -limit, limit);
-
-  for (let iter = 0; iter < 3; iter++) {
-    let collided = false;
-    for (const box of [...walls, ...obstacles]) {
-      if (spherePenetratesAABB(nextPos, radius, box)) {
-        pushOutOfAABB(nextPos, radius, box);
-        collided = true;
-      }
-    }
-    if (!collided) break;
-  }
-}
-
-function spherePenetratesAABB(pos, radius, box) {
-  const cx = clamp(pos.x, box.min.x, box.max.x);
-  const cz = clamp(pos.z, box.min.z, box.max.z);
-  const dx = pos.x - cx;
-  const dz = pos.z - cz;
-  return dx * dx + dz * dz < radius * radius;
-}
-
-function pushOutOfAABB(pos, radius, box) {
-  const left  = pos.x - box.min.x;
-  const right = box.max.x - pos.x;
-  const front = pos.z - box.min.z;
-  const back  = box.max.z - pos.z;
-  const eps = 1e-3;
-  const minPen = Math.min(left, right, front, back);
-  if (minPen === left)        pos.x = box.min.x - radius - eps;
-  else if (minPen === right)  pos.x = box.max.x + radius + eps;
-  else if (minPen === front)  pos.z = box.min.z - radius - eps;
-  else                         pos.z = box.max.z + radius + eps;
-}
-
-function clamp(v, lo, hi) {
-  return v < lo ? lo : v > hi ? hi : v;
 }

@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { resolveSphereAgainstAABBs } from './collision.js';
 
 // Player entity. Owns the mesh, movement, facing, melee swing, HP, and the
 // 0.5u hit sphere.
@@ -131,60 +132,4 @@ export function playerOverlapsZombie(player, zombie) {
 export function damagePlayer(player, amount) {
   player.hp = Math.max(0, player.hp - amount);
   return player.hp <= 0;
-}
-
-// --- collision helpers (XZ-plane) ---
-
-function resolveSphereAgainstAABBs(nextPos, radius, walls, obstacles) {
-  // First try the arena bounds so we never escape the 50x50 floor.
-  // (Walls are slightly larger than the arena, but the perimeter is also
-  // enforced by the AABB sweep below; clamping first is cheap insurance.)
-  const limit = 25 - radius - 0.5;
-  nextPos.x = THREE.MathUtils.clamp(nextPos.x, -limit, limit);
-  nextPos.z = THREE.MathUtils.clamp(nextPos.z, -limit, limit);
-
-  // Resolve walls and obstacles in a small loop; the slice 1 arena has at
-  // most 14 of these combined so this stays cheap.
-  for (let iter = 0; iter < 3; iter++) {
-    let collided = false;
-    for (const box of [...walls, ...obstacles]) {
-      if (spherePenetratesAABB(nextPos, radius, box)) {
-        pushOutOfAABB(nextPos, radius, box);
-        collided = true;
-      }
-    }
-    if (!collided) break;
-  }
-}
-
-function spherePenetratesAABB(pos, radius, box) {
-  // Project the sphere center onto the AABB and test against the closest
-  // point. The arena is flat so we treat boxes as their full 3D AABB; the
-  // player's y is well above the floor so vertical clamping isn't needed.
-  const cx = clampScalar(pos.x, box.min.x, box.max.x);
-  const cz = clampScalar(pos.z, box.min.z, box.max.z);
-  const dx = pos.x - cx;
-  const dz = pos.z - cz;
-  return dx * dx + dz * dz < radius * radius;
-}
-
-function pushOutOfAABB(pos, radius, box) {
-  // Pick the axis with the smallest penetration to push the sphere out.
-  const left   = pos.x - box.min.x;
-  const right  = box.max.x - pos.x;
-  const front  = pos.z - box.min.z;
-  const back   = box.max.z - pos.z;
-
-  // We add a small epsilon so the sphere doesn't end up exactly touching
-  // the surface (which can re-trigger the penetration test next frame).
-  const eps = 1e-3;
-  const minPen = Math.min(left, right, front, back);
-  if (minPen === left)        pos.x = box.min.x - radius - eps;
-  else if (minPen === right)  pos.x = box.max.x + radius + eps;
-  else if (minPen === front)  pos.z = box.min.z - radius - eps;
-  else                         pos.z = box.max.z + radius + eps;
-}
-
-function clampScalar(v, lo, hi) {
-  return v < lo ? lo : v > hi ? hi : v;
 }

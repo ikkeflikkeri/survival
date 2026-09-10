@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { mulberry32, overlapsAnyObstacle } from './collision.js';
 
 // Arena + obstacle layout. Deterministic via mulberry32 seeded with 0xDEADBEEF
 // (per docs/DESIGN.md §9). Walls and obstacles are exposed as AABBs so the
@@ -18,18 +19,6 @@ export const OBSTACLE_SIZE = 1.5;      // ~1.5 cube
 // Keep zombies and player a bit clear of the perimeter so they don't
 // spawn clipping a wall.
 export const ARENA_INNER_HALF = ARENA_HALF - 1.0;
-
-// --- Seeded PRNG (mulberry32) ---
-function mulberry32(seed) {
-  let s = seed >>> 0;
-  return function () {
-    s = (s + 0x6D2B79F5) >>> 0;
-    let t = s;
-    t = Math.imul(t ^ (t >>> 15), t | 1);
-    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
 
 // --- Public helpers ---
 
@@ -152,21 +141,9 @@ export function findOpenPosition(rng, radius, walls, obstacles, maxTries = 40) {
   for (let i = 0; i < maxTries; i++) {
     const x = (rng() * 2 - 1) * (ARENA_INNER_HALF - margin);
     const z = (rng() * 2 - 1) * (ARENA_INNER_HALF - margin);
-    if (!insideAnyObstacle(x, z, margin, obstacles)) {
+    if (!overlapsAnyObstacle(x, z, margin, obstacles)) {
       return new THREE.Vector3(x, 0, z);
     }
   }
   return null;
-}
-
-function insideAnyObstacle(x, z, margin, obstacles) {
-  for (const o of obstacles) {
-    if (
-      x + margin > o.min.x && x - margin < o.max.x &&
-      z + margin > o.min.z && z - margin < o.max.z
-    ) {
-      return true;
-    }
-  }
-  return false;
 }
